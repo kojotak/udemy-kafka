@@ -10,6 +10,9 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import cz.kojotak.udemy.kafka.beginners.Config;
+
 import static org.apache.kafka.clients.consumer.ConsumerConfig.*;
 public class ConsumerDemoGroups {
 	
@@ -19,7 +22,7 @@ public class ConsumerDemoGroups {
 		Logger logger = LoggerFactory.getLogger(ConsumerDemoGroups.class);
 		
 		Properties properties = new Properties();
-		properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, ProducerDemo.BOOTSTRAP_SERVERS);
+		properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, Config.BOOTSTRAP_SERVERS);
 		properties.setProperty(KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 		properties.setProperty(VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 		properties.setProperty(GROUP_ID_CONFIG, GROUP_ID);

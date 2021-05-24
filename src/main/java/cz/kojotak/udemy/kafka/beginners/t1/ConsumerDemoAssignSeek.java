@@ -12,6 +12,9 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import cz.kojotak.udemy.kafka.beginners.Config;
+
 import static org.apache.kafka.clients.consumer.ConsumerConfig.*;
 public class ConsumerDemoAssignSeek {
 	
@@ -21,7 +24,7 @@ public class ConsumerDemoAssignSeek {
 		Logger logger = LoggerFactory.getLogger(ConsumerDemoAssignSeek.class);
 		
 		Properties properties = new Properties();
-		properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, ProducerDemo.BOOTSTRAP_SERVERS);
+		properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, Config.BOOTSTRAP_SERVERS);
 		properties.setProperty(KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 		properties.setProperty(VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 		properties.setProperty(AUTO_OFFSET_RESET_CONFIG, "earliest"); //other options: latest and none

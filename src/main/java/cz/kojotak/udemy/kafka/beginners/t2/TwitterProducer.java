@@ -1,10 +1,16 @@
 package cz.kojotak.udemy.kafka.beginners.t2;
 
+import static org.apache.kafka.clients.producer.ProducerConfig.BOOTSTRAP_SERVERS_CONFIG;
+import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
+
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +24,7 @@ import com.twitter.hbc.core.endpoint.StatusesFilterEndpoint;
 import com.twitter.hbc.core.processor.StringDelimitedProcessor;
 import com.twitter.hbc.httpclient.auth.Authentication;
 import com.twitter.hbc.httpclient.auth.OAuth1;
-
+import static cz.kojotak.udemy.kafka.beginners.Config.*;
 public class TwitterProducer implements Runnable {
 
 	Logger logger = LoggerFactory.getLogger(getClass());
@@ -36,6 +42,8 @@ public class TwitterProducer implements Runnable {
 		Client client = createTwitterProducer(msgQueue);
 		client.connect();
 		
+		KafkaProducer<String,String> kafkaProducer = createKafkaProducer();
+		
 		// on a different thread, or multiple different threads....
 		while (!client.isDone()) {
 		  try {
@@ -48,10 +56,15 @@ public class TwitterProducer implements Runnable {
 		}
 	}
 
-	String consumerKey = "YRwNvbb7rfqZvSc9XJjkyNI2r";
-	String consumerSecret = "qprfXtMCOMmAXpQ9EPi6c1vcVyd17e7CUew1dFZrZmmfdabYGs";
-	String token = "18406353-99CFGDoZeAsZVWyYrNHz40jTnO07n9tku9UJqpIv8";
-	String secret = "FDP8XKrtNCaVTmib04TpgKVe3QfVaFJHmgbJa6pNLVJp8";
+	private KafkaProducer<String, String> createKafkaProducer() {
+		Properties  properties = new Properties();
+		properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
+		properties.setProperty(KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+		properties.setProperty(VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+		
+		KafkaProducer<String, String> producer = new KafkaProducer<String, String>(properties);
+		return producer;
+	}
 
 	// from https://github.com/twitter/hbc
 	public Client createTwitterProducer(BlockingQueue<String> msgQueue ) {
@@ -69,7 +82,7 @@ public class TwitterProducer implements Runnable {
 		hosebirdEndpoint.trackTerms(terms);
 
 		// These secrets should be read from a config file
-		Authentication hosebirdAuth = new OAuth1(consumerKey, consumerSecret, token, secret);
+		Authentication hosebirdAuth = new OAuth1(TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_TOKEN, TWITTER_SECRET);
 
 		ClientBuilder builder = new ClientBuilder()
 				.name("Hosebird-Client-01") 
