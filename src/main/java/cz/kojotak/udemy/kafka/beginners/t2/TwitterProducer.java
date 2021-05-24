@@ -1,8 +1,6 @@
 package cz.kojotak.udemy.kafka.beginners.t2;
 
-import static org.apache.kafka.clients.producer.ProducerConfig.BOOTSTRAP_SERVERS_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.producer.ProducerConfig.*;
 
 import java.util.List;
 import java.util.Properties;
@@ -11,6 +9,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -85,6 +84,11 @@ public class TwitterProducer implements Runnable {
 		properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
 		properties.setProperty(KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 		properties.setProperty(VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+		properties.setProperty(ENABLE_IDEMPOTENCE_CONFIG, "true");
+		properties.setProperty(ACKS_CONFIG, "all");
+		properties.setProperty(RETRIES_CONFIG, Integer.toString(Integer.MAX_VALUE));
+		properties.setProperty(MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "5");
 		
 		KafkaProducer<String, String> producer = new KafkaProducer<String, String>(properties);
 		return producer;
