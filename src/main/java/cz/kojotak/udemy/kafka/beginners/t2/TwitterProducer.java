@@ -30,7 +30,7 @@ import static cz.kojotak.udemy.kafka.beginners.Config.*;
 public class TwitterProducer implements Runnable {
 
 	Logger logger = LoggerFactory.getLogger(getClass());
-	List<String> terms = Lists.newArrayList("kafka");
+	List<String> terms = Lists.newArrayList("kafka", "java", "bitcoin");
 	public TwitterProducer() {
 	}
 
@@ -85,10 +85,16 @@ public class TwitterProducer implements Runnable {
 		properties.setProperty(KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 		properties.setProperty(VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
+		//chapter 63 safe producer
 		properties.setProperty(ENABLE_IDEMPOTENCE_CONFIG, "true");
 		properties.setProperty(ACKS_CONFIG, "all");
 		properties.setProperty(RETRIES_CONFIG, Integer.toString(Integer.MAX_VALUE));
 		properties.setProperty(MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "5");
+		
+		//chapter 66 high throughput
+		properties.setProperty(COMPRESSION_TYPE_CONFIG, "snappy");
+		properties.setProperty(LINGER_MS_CONFIG, "20");
+		properties.setProperty(BATCH_SIZE_CONFIG, Integer.toString(32*1024));
 		
 		KafkaProducer<String, String> producer = new KafkaProducer<String, String>(properties);
 		return producer;
