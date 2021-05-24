@@ -9,7 +9,10 @@ import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,9 +31,13 @@ import static cz.kojotak.udemy.kafka.beginners.Config.*;
 public class TwitterProducer implements Runnable {
 
 	Logger logger = LoggerFactory.getLogger(getClass());
+	List<String> terms = Lists.newArrayList("kafka");
 	public TwitterProducer() {
 	}
 
+	//before starting...
+	//kafka-topics.sh --zookeeper 127.0.0.1:2181 --create --topic twitter_tweets --partitions 6 --replication-factor 1
+	//kafka-console-consumer.sh --bootstrap-server 127.0.0.1:9092 --topic twitter_tweets
 	public static void main(String[] args) {
 		new TwitterProducer().run();
 	}
@@ -42,13 +49,30 @@ public class TwitterProducer implements Runnable {
 		Client client = createTwitterProducer(msgQueue);
 		client.connect();
 		
-		KafkaProducer<String,String> kafkaProducer = createKafkaProducer();
+		KafkaProducer<String,String> producer = createKafkaProducer();
+		
+		Runtime.getRuntime().addShutdownHook( new Thread(()->{
+			logger.info("stopping application...");
+			client.stop();
+			producer.close();
+			logger.info("...done");
+		}));
 		
 		// on a different thread, or multiple different threads....
 		while (!client.isDone()) {
 		  try {
 			String msg = msgQueue.take();
 			logger.info("msg: " + msg);
+			producer.send(new ProducerRecord<>("twitter_tweets", null, msg), new Callback() {
+
+				@Override
+				public void onCompletion(RecordMetadata metadata, Exception exception) {
+					if(exception!=null) {
+						logger.error("bad day", exception);
+					}
+				}
+				
+			});
 		  } catch (InterruptedException e) {
 			  logger.error("error happened ", e);
 			  client.stop();
@@ -77,7 +101,6 @@ public class TwitterProducer implements Runnable {
 		StatusesFilterEndpoint hosebirdEndpoint = new StatusesFilterEndpoint();
 		// Optional: set up some followings and track terms
 		List<Long> followings = Lists.newArrayList(1234L, 566788L);
-		List<String> terms = Lists.newArrayList("twitter", "api");
 		hosebirdEndpoint.followings(followings);
 		hosebirdEndpoint.trackTerms(terms);
 
