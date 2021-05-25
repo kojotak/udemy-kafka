@@ -19,6 +19,8 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonParser;
+
 import cz.kojotak.udemy.kafka.beginners.Config;
 import cz.kojotak.udemy.kafka.beginners.t1.ProducerDemo;
 
@@ -43,15 +45,19 @@ public class ElasticSearchConsumer {
 			while(true) {
 				ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
 				for(ConsumerRecord<String, String> record : records) {
+					//1st strategy to create an ID to achieve idempotency
+					//String id = record.topic() + record.partition() + record.offset();
+					
+					//2nd strategy - rely on twitter's tweet id
+					String id = extractId( record.value() );
+					
 					String json = record.value();
-
-					IndexRequest indexRequest = new IndexRequest("twitter","tweets")
+					IndexRequest indexRequest = new IndexRequest("twitter","tweets",id)
 							.source(json, XContentType.JSON);
 				
 					IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
 					
-					String id = indexResponse.getId();
-					logger.info("id from response: " + id);
+					logger.info("id from response: " + indexResponse.getId());
 					//use Bonsai's console to check the result: /twitter/tweets/x3i-onkBtJl9PCZyNywo (use the logger id instead)
 					Thread.sleep(1000);
 				}
@@ -59,6 +65,14 @@ public class ElasticSearchConsumer {
 		}
 	}
 	
+	private static String extractId(String json) {
+		return new JsonParser()
+				.parse(json)
+				.getAsJsonObject()
+				.get("id_str")
+				.getAsString();
+	}
+
 	private static KafkaConsumer<String,String> createConsumer(String topic){
 		Properties properties = new Properties();
 		properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, Config.BOOTSTRAP_SERVERS);
