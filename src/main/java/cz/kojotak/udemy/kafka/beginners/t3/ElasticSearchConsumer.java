@@ -9,6 +9,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -41,30 +43,42 @@ public class ElasticSearchConsumer {
 			while(true) {
 				ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
 				
-				logger.info("received " + records.count() + " records");
+				Integer received = records.count();
+				logger.info("received " + received + " records");
+				
+				BulkRequest bulkRequest = new BulkRequest();
 				
 				for(ConsumerRecord<String, String> record : records) {
 					//1st strategy to create an ID to achieve idempotency
 					//String id = record.topic() + record.partition() + record.offset();
 					
 					//2nd strategy - rely on twitter's tweet id
-					String id = extractId( record.value() );
+					String id = null;
+					try{
+						id = extractId( record.value() );
+					}catch(Exception e) {
+						logger.warn("skipping: " + record.value());
+						continue;
+					}
 					
 					String json = record.value();
 					IndexRequest indexRequest = new IndexRequest("twitter","tweets",id)
 							.source(json, XContentType.JSON);
 				
-					IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
+					bulkRequest.add(indexRequest);
 					
-					logger.info("id from response: " + indexResponse.getId());
-					//use Bonsai's console to check the result: /twitter/tweets/x3i-onkBtJl9PCZyNywo (use the logger id instead)
-					Thread.sleep(1000);
+					//only for sending requests one by one...
+//					IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
+//					logger.info("id from response: " + indexResponse.getId());
+
+					if(received>0) {
+						BulkResponse bulkResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
+						logger.info("commiting offset...");
+						consumer.commitSync();
+						logger.info("commiting offset... done");
+						Thread.sleep(1000);
+					}
 				}
-				
-				logger.info("commiting offset...");
-				consumer.commitSync();
-				logger.info("commiting offset... done");
-				Thread.sleep(1000);
 			}
 		}
 	}
@@ -87,7 +101,7 @@ public class ElasticSearchConsumer {
 		
 		//chapter 79 - manual commit of offsets
 		properties.setProperty(ENABLE_AUTO_COMMIT_CONFIG, "false"); //disable default auto commit
-		properties.setProperty(MAX_POLL_RECORDS_CONFIG, "10"); 
+		properties.setProperty(MAX_POLL_RECORDS_CONFIG, "100"); 
 		
 		KafkaConsumer<String, String> consumer = new KafkaConsumer<String,String>(properties);
 		consumer.subscribe(Collections.singleton(topic));
