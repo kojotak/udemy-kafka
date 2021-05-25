@@ -25,11 +25,7 @@ import cz.kojotak.udemy.kafka.beginners.Config;
 import cz.kojotak.udemy.kafka.beginners.t1.ProducerDemo;
 
 import static cz.kojotak.udemy.kafka.beginners.Config.*;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.*;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -44,6 +40,9 @@ public class ElasticSearchConsumer {
 			KafkaConsumer<String, String> consumer = createConsumer("twitter_tweets");
 			while(true) {
 				ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+				
+				logger.info("received " + records.count() + " records");
+				
 				for(ConsumerRecord<String, String> record : records) {
 					//1st strategy to create an ID to achieve idempotency
 					//String id = record.topic() + record.partition() + record.offset();
@@ -61,6 +60,11 @@ public class ElasticSearchConsumer {
 					//use Bonsai's console to check the result: /twitter/tweets/x3i-onkBtJl9PCZyNywo (use the logger id instead)
 					Thread.sleep(1000);
 				}
+				
+				logger.info("commiting offset...");
+				consumer.commitSync();
+				logger.info("commiting offset... done");
+				Thread.sleep(1000);
 			}
 		}
 	}
@@ -80,6 +84,10 @@ public class ElasticSearchConsumer {
 		properties.setProperty(VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 		properties.setProperty(GROUP_ID_CONFIG, "kafka-demo-elasticsearch");
 		properties.setProperty(AUTO_OFFSET_RESET_CONFIG, "earliest"); //other options: latest and none
+		
+		//chapter 79 - manual commit of offsets
+		properties.setProperty(ENABLE_AUTO_COMMIT_CONFIG, "false"); //disable default auto commit
+		properties.setProperty(MAX_POLL_RECORDS_CONFIG, "10"); 
 		
 		KafkaConsumer<String, String> consumer = new KafkaConsumer<String,String>(properties);
 		consumer.subscribe(Collections.singleton(topic));
